@@ -1,29 +1,39 @@
 import {FabAddButton} from "../../components";
-import {Paper, Stack} from "@mui/material";
-import {styled} from "@mui/material/styles";
+import {Stack} from "@mui/material";
+import {CategoryListTable} from "./CategoryListTable";
 
-const Item = styled(Paper)(({ theme }) => ({
-    backgroundColor: theme.palette.mode === 'dark' ? '#1A2027' : '#fff',
-    ...theme.typography.body2,
-    padding: theme.spacing(1),
-    textAlign: 'center',
-    color: theme.palette.text.secondary,
-}));
+import {useToggle} from "../../hooks";
+import TransitionsModal from "../../shared/TransitionModal";
+import TitleModal from "../../components/TitleModal";
+import FormCategory from "./FormCategory";
+import {Category} from "./model/category.model";
+
 
 export const CategoryPage = () => {
 
-    const handleClick = () => {
-        console.log('add')
+    const {isOpen, onOpen, onClose} = useToggle()
+
+    const handleSubmit = (category: Category) => {
+        console.log(category)
     }
 
     return (
         <div>
+            <h1> Categorias </h1>
             <Stack spacing={2}>
-              <h1>adasd</h1>
-              <h1>adasd</h1>
-              <h1>adasd</h1>
+                <CategoryListTable/>
             </Stack>
-            <FabAddButton onClick={handleClick}/>
+            <FabAddButton onClick={onOpen}/>
+
+            {
+                isOpen && (
+                    <TransitionsModal isOpen={isOpen} handleClose={onClose}>
+                        <TitleModal title="Agregar Categoria" />
+                        <FormCategory handleSubmit={handleSubmit} handleClose={onClose} />
+                    </TransitionsModal>
+                )
+            }
+
         </div>
     )
 }

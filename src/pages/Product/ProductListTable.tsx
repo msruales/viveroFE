@@ -5,44 +5,45 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import TableCell from "@mui/material/TableCell";
 import TableBody from "@mui/material/TableBody";
-import {Backdrop, Button, CircularProgress, IconButton, Input, Pagination, Skeleton, Stack} from "@mui/material";
+import {
+    Backdrop,
+    CircularProgress,
+    Box,
+    IconButton,
+    Input,
+    LinearProgress,
+    Stack,
+    TableFooter
+} from "@mui/material";
 import * as React from "react";
 import {useDeleteProductMutation, useGetProductListQuery} from "../../services/productApi";
 import {Product} from "./model/product.model";
-import {useRef, useState} from "react";
 import SkeletonTable from "../../components/SkeletonTable";
 
 import SettingsIcon from '@mui/icons-material/Settings';
 import DeleteIcon from '@mui/icons-material/Delete';
+import {useFilter} from "../../hooks/useFilter";
+import TablePagination from "../../components/TablePagination";
 
-export const ProductListTable = () => {
-    const [page, setPage] = useState(1)
-    const [search, setSearch] = useState('')
-    const {data, isLoading, isFetching} = useGetProductListQuery({page, search})
+interface Props {
+    handleUpdate: (product: Product) => void
+}
 
-    const [updatePost, { isLoading: isUpdating }] = useDeleteProductMutation()
+export const ProductListTable = ({handleUpdate}: Props) => {
 
-    const selectPage = (e: React.ChangeEvent<unknown>, page: number) => {
-        setPage(page)
-    }
-    const debounceRef = useRef<NodeJS.Timeout>()
-    const handleChange = (event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>) => {
+    const {optionsPage, handleChangeRowsPerPage, search, handleOnPageChange, handleChangeSearch} = useFilter(0)
 
-        if (debounceRef.current)
-            clearTimeout(debounceRef.current)
-        debounceRef.current = setTimeout(() => {
-            setSearch(event.target.value)
-            setPage(1)
-        }, 350)
-    }
+    const {data, isLoading, isFetching,} = useGetProductListQuery({
+        page: optionsPage.page + 1,
+        search,
+        rowsPerPage: optionsPage.perPage
+    })
+    const [updatePost, {isLoading: isDeleting}] = useDeleteProductMutation()
+
     const handleDelete = async (id: string) => {
 
-        console.log(await updatePost(id).unwrap())
+        await updatePost(id).unwrap()
 
-        console.log(id)
-    }
-    const handleUpdate = (product: Product) => {
-        console.log(product)
     }
 
     if (isLoading) {
@@ -55,12 +56,28 @@ export const ProductListTable = () => {
             </Backdrop>
         )
     }
+
+    if (!data?.products.length) {
+        return (
+            <div>
+                <h1>
+                    NO DATA
+                </h1>
+            </div>
+        )
+
+    }
     return (
         <>
             <Stack spacing={4}>
-                <Input type="search" placeholder="Buscar..." onChange={handleChange}/>
+                <Input type="search" placeholder="Buscar..." onChange={handleChangeSearch}/>
                 <TableContainer component={Paper}>
-                    <Table sx={{minWidth: 650}} aria-label="simple table">
+                    {isFetching && (
+                        <Box sx={{width: '100%'}}>
+                            <LinearProgress/>
+                        </Box>
+                    )}
+                    < Table sx={{minWidth: 650}} aria-label="simple table">
                         <TableHead>
                             <TableRow>
                                 <TableCell>Nombre</TableCell>
@@ -73,47 +90,39 @@ export const ProductListTable = () => {
                         </TableHead>
                         <TableBody>
                             {
-                                isFetching ? (
-                                    <SkeletonTable rows={10} columns={6}/>
-                                ) : (
-                                    data?.products?.map((product: Product) => (
-                                        <TableRow
-                                            key={product.id}
-                                            sx={{'&:last-child td, &:last-child th': {border: 0}}}
-                                        >
-                                            <TableCell component="th" scope="row">
-                                                {product.name}
-                                            </TableCell>
-                                            <TableCell align="right">{product.description}</TableCell>
-                                            <TableCell align="right">{product.price}</TableCell>
-                                            <TableCell align="right">{product.stock}</TableCell>
-                                            <TableCell align="right">{product.category.name}</TableCell>
-                                            <TableCell align="center">
-                                                <IconButton color="error" onClick={() => handleDelete(product.id)}>
-                                                    <DeleteIcon/>
-                                                </IconButton>
-                                                <IconButton color="warning" onClick={() => handleUpdate(product)}>
-                                                    <SettingsIcon/>
-                                                </IconButton>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                )
+
+                                data.products?.map((product: Product) => (
+                                    <TableRow
+                                        key={product.id}
+                                        sx={{'&:last-child td, &:last-child th': {border: 0}}}
+                                    >
+                                        <TableCell component="th" scope="row">
+                                            {product.name}
+                                        </TableCell>
+                                        <TableCell align="right">{product.description}</TableCell>
+                                        <TableCell align="right">{product.price}</TableCell>
+                                        <TableCell align="right">{product.stock}</TableCell>
+                                        <TableCell align="right">{product.category.name}</TableCell>
+                                        <TableCell align="center">
+                                            <IconButton color="error" onClick={() => handleDelete(product.id)}>
+                                                <DeleteIcon/>
+                                            </IconButton>
+                                            <IconButton color="warning" onClick={() => handleUpdate(product)}>
+                                                <SettingsIcon/>
+                                            </IconButton>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
                             }
                         </TableBody>
                     </Table>
-                    {
-                        data?.pagination && (
-                            <Pagination sx={{
-                                margin: '10px',
-                                float: 'right'
-                            }}
-                                        count={data.pagination.lastPage}
-                                        color="primary"
-                                        onChange={selectPage}/>
-                        )
-                    }
-
+                    <TablePagination
+                       page={optionsPage.page}
+                       handleChangeRowsPerPage={handleChangeRowsPerPage}
+                       paginationData={data.pagination}
+                       handleOnPageChange={handleOnPageChange}
+                       labelRowsPerPage={"Productos por pagina"}
+                    />
                 </TableContainer>
             </Stack>
 

@@ -5,24 +5,25 @@ import {paginationAdapter} from "../adapters/pagination.adapter";
 import {Product} from "../pages/Product/model/product.model";
 
 
-export const productApi =  createApi({
+export const productApi = createApi({
     reducerPath: 'productApi',
     baseQuery: MyFetchBaseQuery(),
     tagTypes: ['Products'],
     endpoints: builder => ({
         getProductList: builder.query({
-            query: ({page, search = 'A'}) => ({
+            query: ({page = 1, search = '', rowsPerPage = 10}) => ({
                 url: `dashboard/products`,
                 params: {
                     page,
-                    search
+                    search,
+                    perPage: rowsPerPage
                 }
             }),
 
-            transformResponse: ({data}: {data: any}) => {
+            transformResponse: ({data}: { data: any }) => {
                 const {pagination: paginationIn, products: productsIn} = data
                 return {
-                    products: productsIn ? productsIn.map( (product: object) => ProductAdapter(product)) : [],
+                    products: productsIn ? productsIn.map((product: object) => ProductAdapter(product)) : [],
                     pagination: paginationAdapter(paginationIn)
                 }
             },
@@ -31,11 +32,11 @@ export const productApi =  createApi({
                 result
                     ? // successful query
                     [
-                        ...result.products.map(({ id }: Product) => ({ type: 'Products', id } as const)),
-                        { type: 'Products', id: 'LIST' },
+                        ...result.products.map(({id}: Product) => ({type: 'Products', id} as const)),
+                        {type: 'Products', id: 'LIST'},
                     ]
                     : // an error occurred, but we still want to refetch this query when `{ type: 'Posts', id: 'LIST' }` is invalidated
-                    [{ type: 'Products', id: 'LIST' }],
+                    [{type: 'Products', id: 'LIST'}],
         }),
         deleteProduct: builder.mutation({
             query: (id: string) => ({
@@ -44,10 +45,38 @@ export const productApi =  createApi({
             }),
             invalidatesTags: (result, error, id) => {
                 console.log('result', result, 'id', id)
-                return [{ type: 'Products', id }]
+                return [{type: 'Products', id}]
             },
+        }),
+        addProduct: builder.mutation<Product, Partial<Product>>({
+            query: (product) => ({
+                url: `dashboard/products`,
+                method: 'POST',
+                body: {
+                    ...product
+                }
+            }),
+            invalidatesTags: [{type: 'Products', id: 'LIST'}],
+        }),
+        updatePost: builder.mutation<Product, Partial<Product>>({
+            query(product) {
+                const {id, ...body} = product
+                return {
+                    url: `dashboard/products/${id}`,
+                    method: 'PATCH',
+                    body,
+                }
+            },
+            invalidatesTags: (result, error, {id}) => {
+                return [{type: 'Products', id}]
+            }
         }),
     }),
 })
 
-export const { useGetProductListQuery, useDeleteProductMutation } = productApi
+export const {
+    useGetProductListQuery,
+    useDeleteProductMutation,
+    useUpdatePostMutation,
+    useAddProductMutation
+} = productApi

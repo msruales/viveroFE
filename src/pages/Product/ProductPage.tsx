@@ -1,87 +1,59 @@
-import {FabAddButton, BasicTable, InputForm} from "../../components";
-import {useGetProductListQuery} from "../../services/productApi";
+import {FabAddButton} from "../../components";
 import {ProductListTable} from "./ProductListTable";
 import TransitionsModal from "../../shared/TransitionModal";
-import {useState} from "react";
-import {Formik, FormikValues} from "formik";
-import {
-    Button,
-    Divider,
-    FormControl,
-    FormGroup,
-    FormHelperText,
-    Input,
-    InputLabel,
-    MenuItem, Stack,
-    Typography
-} from "@mui/material";
-import SelectForm from "../../components/SelectForm";
-import {Toolbar} from '@mui/material';
+import {FormikValues} from "formik";
+import {useToggle} from "../../hooks";
+import TitleModal from "../../components/TitleModal";
+import {FormProduct} from "./FormProduct";
+import {useAddProductMutation, useUpdatePostMutation} from "../../services/productApi";
+import {useEffect, useState} from "react";
+import {Product} from "./model/product.model";
 
 export const ProductPage = () => {
-    const [isOpen, setIsOpen] = useState(false)
 
-    const handleClick = () => {
-        setIsOpen(true)
-    }
-    const handleClose = () => {
-        console.log(
-            'cerrado'
-        )
-        setIsOpen(false)
-    }
+    const [addProduct, {isSuccess: isAdded}] = useAddProductMutation()
+    const [updateProduct, {isSuccess: isUpdated}] = useUpdatePostMutation()
+
+    const [product, setProduct] = useState<Product>()
+
+    const {isOpen, onClose, onOpen} = useToggle()
 
     const handleSubmit = (values: FormikValues) => {
-        console.log(values)
+        addProduct({...values})
     }
+
+    const onEdit = (product: Product) => {
+        setProduct(product)
+        onOpen()
+    }
+
+    const onCreate = () => {
+        setProduct(undefined)
+        onOpen()
+    }
+
+    const handleUpdate = (values: FormikValues) => {
+        updateProduct({...values})
+    }
+
+    useEffect(() => {
+
+        if (isAdded || isUpdated) {
+            onClose()
+        }
+
+    }, [isAdded, isUpdated])
 
     return (
         <div>
             <h1> Productos </h1>
-
-            <ProductListTable/>
-            {/*<BasicTable />*/}
-
-            <FabAddButton onClick={handleClick}/>
+            <ProductListTable handleUpdate={onEdit}/>
+            <FabAddButton onClick={onCreate}/>
             {isOpen && (
-                <TransitionsModal isOpen={isOpen} handleClose={handleClose}>
-                    <Toolbar>
-                        <Typography mb={2} variant="h4" component="h2">
-                            Agregar Producto
-                        </Typography>
-                    </Toolbar>
-                    <Formik initialValues={{name: '', description: '', price: '', categoryId: ''}}
-                            onSubmit={handleSubmit}>
-                        {
-                            ({submitForm}) => (
-                                <>
-                                    <FormGroup>
-                                        <Divider/>
-                                        <SelectForm label="Categoria" name="categoryId">
-                                            <MenuItem value="">
-                                                <em>Seleccione un valor</em>
-                                            </MenuItem>
-                                            <MenuItem value="2">
-                                                asdx
-                                            </MenuItem>
-                                        </SelectForm>
-                                        <InputForm label="Nombre" name="name"/>
-                                        <InputForm label="Descripcion" name="description"/>
-                                        <InputForm label="Precio" name="price" type="number"/>
-                                        <InputForm label="Stock" name="stock" type="number"/>
-
-                                    </FormGroup>
-                                    <Stack direction="row" mt={2} justifyContent="space-around"
-                                           alignItems="center">
-                                        <Button onClick={handleClose} color="error">Cerrar</Button>
-                                        <Button type="submit" onClick={submitForm}>Guardar</Button>
-                                    </Stack>
-
-                                </>
-                            )
-                        }
-
-                    </Formik>
+                <TransitionsModal isOpen={isOpen} handleClose={onClose}>
+                    <TitleModal title={product ? "Actualizar Producto" : "Agregar Producto"}/>
+                    <FormProduct handleSubmit={product ? handleUpdate : handleSubmit}
+                                 initialValues={product ? product : undefined} onClose={onClose}/>
                 </TransitionsModal>
             )}
 

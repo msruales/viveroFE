@@ -6,7 +6,7 @@ export interface Product {
     description: string,
     id: string,
     name: string,
-    price: number,
+    price: string,
     status: "disabled" | "activated",
     stock: number
 }

@@ -20,7 +20,7 @@ export const InputForm = ({label, required = false, fullWidth = true, ...props}:
     return (
         <FormControl>
             <TextField
-                error={meta.error ? true : false}
+                error={meta.error && meta.touched ? true : false}
                 margin="normal"
                 required={required}
                 fullWidth
